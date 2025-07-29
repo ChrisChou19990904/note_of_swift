@@ -1,40 +1,207 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="/webstorm-icon-logo.svg" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>WS playground</title>
-  <link rel="stylesheet" href="/style.css">
+    <meta charset="UTF-8">
+    <title>SwiftUI 狀態屬性包裝器說明</title>
+    <style>
+        body {
+            font-family: "SF Pro", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            background: #f7f7f7;
+            color: #333;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        h1, h2 {
+            color: #1a73e8;
+        }
+        pre {
+            background: #282c34;
+            color: #ffffff;
+            padding: 12px;
+            overflow-x: auto;
+            border-radius: 6px;
+        }
+        code {
+            font-family: "SFMono-Regular", Consolas, "Courier New", monospace;
+            font-size: 14px;
+        }
+
+        /* Syntax highlighting */
+        .keyword { color: #c678dd; font-weight: bold; }
+        .type { color: #61afef; }
+        .property { color: #e5c07b; }
+        .string { color: #98c379; }
+        .comment { color: #5c6370; font-style: italic; }
+        .function { color: #56b6c2; }
+        .error { color: #e06c75; font-weight: bold; }
+    </style>
 </head>
 <body>
-<header class="logo">
-  <a href="https://www.jetbrains.com/webstorm/">
-    <img src="/webstorm-logo.svg" alt="WebStorm logo" width="344"
-         height="90">
-  </a>
-</header>
-<main id="app">
-  <h1 class="title">
-    Thank you for trying it out. <br /> Your first project is up and running
-    now.
-  </h1>
-  <section class="counter">
-    <div class="counter-info">
-      <p class="counter-text">Counter is</p>
-      <p class="counter-value" id="counter-value"></p>
-    </div>
-    <div class="counter-interaction">
-      <button id="increaseByOne" type="button">+1</button>
-      <button id="increaseByTwo" type="button">+2</button>
-      <button id="decreaseByOne" type="button">-1</button>
-      <button id="decreaseByTwo" type="button">-2</button>
-    </div>
-  </section>
-</main>
-<footer class="technologies">
-  <img src="/technologies.svg" alt="List of supported technologies">
-</footer>
-<script type="module" src="/src/main.js"></script>
+
+<h1>SwiftUI 狀態屬性包裝器簡介</h1>
+
+<p>以下是 SwiftUI 中幾個常用的屬性包裝器（Property Wrappers），用於管理 View 中的狀態資料：</p>
+
+<h2>📌 常見屬性包裝器比較</h2>
+
+<table border="1" cellpadding="6" cellspacing="0">
+    <tr>
+        <th>屬性包裝器</th>
+        <th>用途說明</th>
+    </tr>
+    <tr>
+        <td>@State</td>
+        <td>管理本地狀態，View 自己的狀態值。</td>
+    </tr>
+    <tr>
+        <td>@Binding</td>
+        <td>從父 View 傳入變數的參照，用來讀寫父層的 @State。</td>
+    </tr>
+    <tr>
+        <td>@ObservedObject</td>
+        <td>觀察外部可觀察物件（如 ViewModel）的資料更新。</td>
+    </tr>
+    <tr>
+        <td>@StateObject</td>
+        <td>在 View 中創建並持有 ObservableObject。</td>
+    </tr>
+    <tr>
+        <td>@EnvironmentObject</td>
+        <td>接收從上層環境注入的共享物件。</td>
+    </tr>
+</table>
+
+<h2>✅ 使用範例</h2>
+
+<h3>1. <code>@State</code>（View 的內部狀態）</h3>
+<pre><code>
+<span class="keyword">struct</span> <span class="type">CounterView</span>: <span class="type">View</span> {
+    <span class="keyword">@State</span> <span class="keyword">private</span> <span class="property">var</span> count = 0
+
+    <span class="keyword">var</span> body: <span class="type">some View</span> {
+        <span class="type">Button</span>(<span class="string">"Count: \(count)"</span>) {
+            count += 1
+        }
+    }
+}
+</code></pre>
+
+<h3>🧨 如果沒加 @State 呢？</h3>
+<pre><code>
+<span class="keyword">struct</span> <span class="type">BrokenCounter</span>: <span class="type">View</span> {
+    <span class="comment">// ⚠️ 少了 @State</span>
+    <span class="keyword">private</span> <span class="property">var</span> count = 0
+
+    <span class="keyword">var</span> body: <span class="type">some View</span> {
+        <span class="type">Button</span>(<span class="string">"Count: \(count)"</span>) {
+            count += 1
+        }
+    }
+}
+</code></pre>
+
+<p>結果會出現錯誤：</p>
+<pre><code class="error">Cannot assign to property: 'count' is a 'let' constant</code></pre>
+<p>這是因為 SwiftUI 的 View 是 struct，內部變數預設是 immutable，若沒有 @State，SwiftUI 不允許你改變它。</p>
+
+<hr>
+
+<h3>2. <code>@Binding</code>（子 View 接收父 View 的狀態）</h3>
+<pre><code>
+<span class="keyword">struct</span> <span class="type">ToggleView</span>: <span class="type">View</span> {
+    <span class="keyword">@Binding</span> <span class="property">var</span> isOn: <span class="type">Bool</span>
+
+    <span class="keyword">var</span> body: <span class="type">some View</span> {
+        <span class="type">Toggle</span>(<span class="string">"開關"</span>, isOn: $isOn)
+    }
+}
+</code></pre>
+
+<h3>3. <code>@ObservedObject</code>（觀察外部物件）</h3>
+<pre><code>
+<span class="keyword">class</span> <span class="type">CounterModel</span>: <span class="type">ObservableObject</span> {
+    <span class="keyword">@Published</span> <span class="property">var</span> count = 0
+}
+
+<span class="keyword">struct</span> <span class="type">MyView</span>: <span class="type">View</span> {
+    <span class="keyword">@ObservedObject</span> <span class="property">var</span> model: <span class="type">CounterModel</span>
+
+    <span class="keyword">var</span> body: <span class="type">some View</span> {
+        <span class="type">Button</span>(<span class="string">"Count: \(model.count)"</span>) {
+            model.count += 1
+        }
+    }
+}
+</code></pre>
+
+<h3>4. <code>@StateObject</code>（View 中創建 ViewModel）</h3>
+<pre><code>
+<span class="keyword">struct</span> <span class="type">MainView</span>: <span class="type">View</span> {
+    <span class="keyword">@StateObject</span> <span class="property">private</span> <span class="property">var</span> model = <span class="type">CounterModel</span>()
+
+    <span class="keyword">var</span> body: <span class="type">some View</span> {
+        <span class="type">MyView</span>(model: model)
+    }
+}
+</code></pre>
+
+<h3>5. <code>@EnvironmentObject</code>（全 app 共享資料）</h3>
+<pre><code>
+<span class="keyword">class</span> <span class="type">UserSettings</span>: <span class="type">ObservableObject</span> {
+    <span class="keyword">@Published</span> <span class="property">var</span> username = <span class="string">"Guest"</span>
+}
+
+<span class="keyword">struct</span> <span class="type">ProfileView</span>: <span class="type">View</span> {
+    <span class="keyword">@EnvironmentObject</span> <span class="property">var</span> settings: <span class="type">UserSettings</span>
+
+    <span class="keyword">var</span> body: <span class="type">some View</span> {
+        <span class="type">Text</span>(<span class="string">"Hello, \(settings.username)"</span>)
+    }
+}
+</code></pre>
+
+<p>App 根部注入：</p>
+<pre><code>
+<span class="keyword">@main</span>
+<span class="keyword">struct</span> <span class="type">MyApp</span>: <span class="type">App</span> {
+    <span class="keyword">var</span> body: <span class="type">some Scene</span> {
+        <span class="type">WindowGroup</span> {
+            <span class="type">ProfileView</span>()
+                .<span class="function">environmentObject</span>(<span class="type">UserSettings</span>())
+        }
+    }
+}
+</code></pre>
+
+<hr>
+
+<h2>❓為什麼函式不用 @State？</h2>
+
+<p><strong>簡短答案：</strong> 因為函式是「行為」，不是「資料」。屬性包裝器只用於變數上。</p>
+
+<pre><code>
+<span class="comment">// ✅ 不需要 @State，這只是行為邏輯</span>
+<span class="keyword">func</span> <span class="function">sayHello</span>() {
+    <span class="type">print</span>(<span class="string">"Hello!"</span>)
+}
+
+<span class="keyword">var</span> body: <span class="type">some View</span> {
+    <span class="type">Button</span>(<span class="string">"Greet"</span>, action: sayHello)
+}
+</code></pre>
+
+<p>函式不儲存狀態，也不影響 UI 更新，因此不需要用狀態包裝器。</p>
+
+<pre><code>
+<span class="comment">// ✅ 可以在函式內部改變狀態（但改的是變數）</span>
+<span class="keyword">@State</span> <span class="keyword">private</span> <span class="property">var</span> count = 0
+
+<span class="keyword">func</span> <span class="function">increase</span>() {
+    count += 1
+}
+</code></pre>
+
+<p>這裡 UI 還是會更新，因為你變動的是被 <code>@State</code> 修飾的變數。</p>
+
 </body>
 </html>
